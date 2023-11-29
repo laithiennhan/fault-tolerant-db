@@ -1,8 +1,14 @@
 package server.faulttolerance;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.NoHostAvailableException;
+
 import edu.umass.cs.gigapaxos.interfaces.Replicable;
 import edu.umass.cs.gigapaxos.interfaces.Request;
+import edu.umass.cs.gigapaxos.paxospackets.RequestPacket;
 import edu.umass.cs.nio.interfaces.IntegerPacketType;
 import edu.umass.cs.nio.interfaces.NodeConfig;
 import edu.umass.cs.nio.nioutils.NIOHeader;
@@ -46,6 +52,8 @@ public class MyDBReplicableAppGP implements Replicable {
 	 * Faster
 	 * is not necessarily better, so don't sweat speed. Focus on safety.
 	 */
+	private final Session session;
+	private final Cluster cluster;
 	public static final int SLEEP = 1000;
 
 	/**
@@ -61,7 +69,12 @@ public class MyDBReplicableAppGP implements Replicable {
 	 */
 	public MyDBReplicableAppGP(String[] args) throws IOException {
 		// TODO: setup connection to the data store and keyspace
-		throw new RuntimeException("Not yet implemented");
+		try {
+				this.cluster = Cluster.builder().addContactPoint("127.0.0.1").build();
+				this.session = cluster.connect(args[0]);  // Connecting to the specified keyspace
+		} catch (NoHostAvailableException e) {
+				throw new IOException("Unable to connect to Cassandra", e);
+		}
 	}
 
 	/**
@@ -78,7 +91,20 @@ public class MyDBReplicableAppGP implements Replicable {
 	@Override
 	public boolean execute(Request request, boolean b) {
 		// TODO: submit request to data store
-		throw new RuntimeException("Not yet implemented");
+		if (!(request instanceof RequestPacket)) {
+			return false;
+	}
+
+		// Assuming RequestPacket's value is a CQL query
+		RequestPacket requestPacket = (RequestPacket) request;
+		try {
+				String cqlQuery = requestPacket.getRequestValue(); // Replace with actual query extraction logic
+				session.execute(cqlQuery);
+				return true;
+		} catch (Exception e) {
+				e.printStackTrace();
+				return false;
+		}
 	}
 
 	/**
@@ -91,7 +117,7 @@ public class MyDBReplicableAppGP implements Replicable {
 	@Override
 	public boolean execute(Request request) {
 		// TODO: execute the request by sending it to the data store
-		throw new RuntimeException("Not yet implemented");
+		return execute(request, false);
 	}
 
 	/**
@@ -103,7 +129,17 @@ public class MyDBReplicableAppGP implements Replicable {
 	@Override
 	public String checkpoint(String s) {
 		// TODO:
-		throw new RuntimeException("Not yet implemented");
+		try {
+			StringBuilder serializedState = new StringBuilder();
+			ResultSet results = session.execute("SELECT * FROM your_table;"); // Replace with your actual query
+			for (Row row : results) {
+					serializedState.append(row.toString()).append("\n"); // Simple serialization logic
+			}
+			return serializedState.toString();
+		} catch (Exception e) {
+				e.printStackTrace();
+				return null; // Indicate failure in serialization
+		}
 	}
 
 	/**
@@ -116,8 +152,19 @@ public class MyDBReplicableAppGP implements Replicable {
 	@Override
 	public boolean restore(String s, String s1) {
 		// TODO:
-		throw new RuntimeException("Not yet implemented");
-
+		try {
+			String[] rows = s1.split("\n");
+			for (String rowData : rows) {
+					// Assuming rowData is a CSV format of the row, adapt as needed
+					String[] columns = rowData.split(",");
+					String cqlInsert = "INSERT INTO your_table (column1, column2, ...) VALUES (" + String.join(", ", columns) + ");";
+					session.execute(cqlInsert); // Replace with actual insert logic
+			}
+			return true;
+		} catch (Exception e) {
+				e.printStackTrace();
+				return false;
+		}
 	}
 
 
