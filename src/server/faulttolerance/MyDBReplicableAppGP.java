@@ -131,7 +131,7 @@ public class MyDBReplicableAppGP implements Replicable {
 		// TODO:
 		try {
 			StringBuilder serializedState = new StringBuilder();
-			ResultSet results = session.execute("SELECT * FROM your_table;"); // Replace with your actual query
+			ResultSet results = session.execute("SELECT * FROM grade;"); // Replace with your actual query
 			for (Row row : results) {
 					serializedState.append(row.toString()).append("\n"); // Simple serialization logic
 			}
@@ -157,7 +157,7 @@ public class MyDBReplicableAppGP implements Replicable {
 			for (String rowData : rows) {
 					// Assuming rowData is a CSV format of the row, adapt as needed
 					String[] columns = rowData.split(",");
-					String cqlInsert = "INSERT INTO your_table (column1, column2, ...) VALUES (" + String.join(", ", columns) + ");";
+					String cqlInsert = "INSERT INTO grade (column1, column2, ...) VALUES (" + String.join(", ", columns) + ");";
 					session.execute(cqlInsert); // Replace with actual insert logic
 			}
 			return true;
