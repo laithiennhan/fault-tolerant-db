@@ -162,8 +162,8 @@ public class MyDBReplicableAppGP implements Replicable {
 			}
 			return true;
 		} catch (Exception e) {
-				e.printStackTrace();
-				return false;
+			e.printStackTrace();
+			return false;
 		}
 	}
 
