@@ -98,7 +98,7 @@ public class MyDBReplicableAppGP implements Replicable {
 		// Assuming RequestPacket's value is a CQL query
 		RequestPacket requestPacket = (RequestPacket) request;
 		try {
-				String cqlQuery = requestPacket.getRequestValue(); // Replace with actual query extraction logic
+				String cqlQuery = requestPacket.requestValue; // Replace with actual query extraction logic
 				session.execute(cqlQuery);
 				return true;
 		} catch (Exception e) {
@@ -152,6 +152,7 @@ public class MyDBReplicableAppGP implements Replicable {
 	@Override
 	public boolean restore(String s, String s1) {
 		// TODO:
+		System.out.println("State:" + s1);
 		try {
 			String[] rows = s1.split("\n");
 			for (String rowData : rows) {
