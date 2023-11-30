@@ -17,7 +17,9 @@ import edu.umass.cs.reconfiguration.reconfigurationutils.RequestParseException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -130,15 +132,17 @@ public class MyDBReplicableAppGP implements Replicable {
 	public String checkpoint(String s) {
 		// TODO:
 		try {
-			StringBuilder serializedState = new StringBuilder();
-			ResultSet results = session.execute("SELECT * FROM grade;"); // Replace with your actual query
-			for (Row row : results) {
-					serializedState.append(row.toString()).append("\n"); // Simple serialization logic
-			}
-			return serializedState.toString();
+				StringBuilder serializedState = new StringBuilder();
+				ResultSet results = session.execute("SELECT id, events FROM grade;");
+				for (Row row : results) {
+						int id = row.getInt("id");
+						List<Integer> events = row.getList("events", Integer.class);
+						serializedState.append(id).append(":").append(events.toString()).append("\n");
+				}
+				return serializedState.toString();
 		} catch (Exception e) {
 				e.printStackTrace();
-				return null; // Indicate failure in serialization
+				return null;
 		}
 	}
 
@@ -152,25 +156,41 @@ public class MyDBReplicableAppGP implements Replicable {
 	@Override
 	public boolean restore(String s, String s1) {
 		// TODO:
-    if ("{}".equals(s1.trim())) {
+		if ("{}".equals(s1.trim())) {
+			session.execute("TRUNCATE grade;");
 			return true;
 		}
-		System.out.println("State:" + s1);
-    try {
-			String[] rows = s1.split("\n");
-			for (String rowData : rows) {
-					// Assuming rowData is in a format suitable for insertion
-					// Adapt this as per your actual table schema and data format
-					String cqlInsert = "INSERT INTO grade (column1, column2, ...) VALUES (" + rowData + ");";
-					session.execute(cqlInsert); // Execute the insertion query
-			}
-			return true;
-	} catch (Exception e) {
-			e.printStackTrace();
-			return false;
-	}
+
+		try {
+				System.out.println("State:" + s1);
+				session.execute("TRUNCATE grade;");
+				String[] rows = s1.split("\n");
+				for (String rowData : rows) {
+						String[] parts = rowData.split(":");
+						int id = Integer.parseInt(parts[0]);
+						List<Integer> events = parseEventsList(parts[1]);
+						String cqlInsert = "INSERT INTO grade (id, events) VALUES (" + id + ", " + events + ");";
+						session.execute(cqlInsert);
+				}
+				return true;
+		} catch (Exception e) {
+				e.printStackTrace();
+				return false;
+		}
 	}
 
+	private List<Integer> parseEventsList(String eventsStr) {
+			// Parse the events list from the string
+			// Assuming eventsStr is in the format: [event1, event2, ...]
+			String[] eventItems = eventsStr.replaceAll("[\\[\\]]", "").split(", ");
+			List<Integer> events = new ArrayList<>();
+			for (String item : eventItems) {
+					if (!item.isEmpty()) {
+							events.add(Integer.parseInt(item.trim()));
+					}
+			}
+			return events;
+	}
 
 	/**
 	 * No request types other than {@link edu.umass.cs.gigapaxos.paxospackets
