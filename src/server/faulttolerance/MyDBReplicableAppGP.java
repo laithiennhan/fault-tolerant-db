@@ -152,20 +152,23 @@ public class MyDBReplicableAppGP implements Replicable {
 	@Override
 	public boolean restore(String s, String s1) {
 		// TODO:
+    if ("{}".equals(s1.trim())) {
+			return true;
+		}
 		System.out.println("State:" + s1);
-		try {
+    try {
 			String[] rows = s1.split("\n");
 			for (String rowData : rows) {
-					// Assuming rowData is a CSV format of the row, adapt as needed
-					String[] columns = rowData.split(",");
-					String cqlInsert = "INSERT INTO grade (column1, column2, ...) VALUES (" + String.join(", ", columns) + ");";
-					session.execute(cqlInsert); // Replace with actual insert logic
+					// Assuming rowData is in a format suitable for insertion
+					// Adapt this as per your actual table schema and data format
+					String cqlInsert = "INSERT INTO grade (column1, column2, ...) VALUES (" + rowData + ");";
+					session.execute(cqlInsert); // Execute the insertion query
 			}
 			return true;
-		} catch (Exception e) {
+	} catch (Exception e) {
 			e.printStackTrace();
 			return false;
-		}
+	}
 	}
 
 
