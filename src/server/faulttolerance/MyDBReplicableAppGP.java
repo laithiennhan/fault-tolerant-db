@@ -73,7 +73,7 @@ public class MyDBReplicableAppGP implements Replicable {
 		// TODO: setup connection to the data store and keyspace
 		try {
 				this.cluster = Cluster.builder().addContactPoint("127.0.0.1").build();
-				this.session = cluster.connect(args[0]);  // Connecting to the specified keyspace
+				this.session = cluster.connect(args[0]);
 		} catch (NoHostAvailableException e) {
 				throw new IOException("Unable to connect to Cassandra", e);
 		}
@@ -95,12 +95,11 @@ public class MyDBReplicableAppGP implements Replicable {
 		// TODO: submit request to data store
 		if (!(request instanceof RequestPacket)) {
 			return false;
-	}
+		}
 
-		// Assuming RequestPacket's value is a CQL query
 		RequestPacket requestPacket = (RequestPacket) request;
 		try {
-				String cqlQuery = requestPacket.requestValue; // Replace with actual query extraction logic
+				String cqlQuery = requestPacket.requestValue;
 				session.execute(cqlQuery);
 				return true;
 		} catch (Exception e) {
@@ -133,7 +132,8 @@ public class MyDBReplicableAppGP implements Replicable {
 		// TODO:
 		try {
 				StringBuilder serializedState = new StringBuilder();
-				ResultSet results = session.execute("SELECT id, events FROM grade;");
+				// ResultSet results = session.execute("SELECT id, events FROM grade;");
+				ResultSet results = session.execute("SELECT * FROM grade;");
 				for (Row row : results) {
 						int id = row.getInt("id");
 						List<Integer> events = row.getList("events", Integer.class);
@@ -162,8 +162,7 @@ public class MyDBReplicableAppGP implements Replicable {
 		}
 
 		try {
-				System.out.println("State:" + s1);
-				session.execute("TRUNCATE grade;");
+				// session.execute("TRUNCATE grade;");
 				String[] rows = s1.split("\n");
 				for (String rowData : rows) {
 						String[] parts = rowData.split(":");
@@ -181,8 +180,9 @@ public class MyDBReplicableAppGP implements Replicable {
 
 	private List<Integer> parseEventsList(String eventsStr) {
 			// Parse the events list from the string
-			// Assuming eventsStr is in the format: [event1, event2, ...]
-			String[] eventItems = eventsStr.replaceAll("[\\[\\]]", "").split(", ");
+			// System.out.println("Parsing events list: " + eventsStr);
+			// eventsStr is in the format: [event1, event2, ...]
+			String[] eventItems = eventsStr.replaceAll("\\[", "").replaceAll("\\]","").split(", ");
 			List<Integer> events = new ArrayList<>();
 			for (String item : eventItems) {
 					if (!item.isEmpty()) {
