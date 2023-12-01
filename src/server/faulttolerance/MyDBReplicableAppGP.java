@@ -162,7 +162,7 @@ public class MyDBReplicableAppGP implements Replicable {
 		}
 
 		try {
-				// session.execute("TRUNCATE grade;");
+				session.execute("TRUNCATE grade;");
 				String[] rows = s1.split("\n");
 				for (String rowData : rows) {
 						String[] parts = rowData.split(":");
