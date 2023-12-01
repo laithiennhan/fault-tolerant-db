@@ -93,16 +93,21 @@ public class MyDBReplicableAppGP implements Replicable {
 	@Override
 	public boolean execute(Request request, boolean b) {
 		// TODO: submit request to data store
+		// if request is not an instance of {@link* edu.umass.cs.gigapaxos.paxospackets.RequestPacket}, return false as the request cannot be executed
 		if (!(request instanceof RequestPacket)) {
 			return false;
 		}
-
+		// Cast the request to type RequestPacket
 		RequestPacket requestPacket = (RequestPacket) request;
 		try {
+				// Extract the CQL query from the request
 				String cqlQuery = requestPacket.requestValue;
+				// Execute the Cassandra query
 				session.execute(cqlQuery);
+				// Return true upon sucessfully running the query
 				return true;
 		} catch (Exception e) {
+				// Return false upon error
 				e.printStackTrace();
 				return false;
 		}
@@ -131,14 +136,18 @@ public class MyDBReplicableAppGP implements Replicable {
 	public String checkpoint(String s) {
 		// TODO:
 		try {
+				// StringBuilder variable to hold the data state 
 				StringBuilder serializedState = new StringBuilder();
-				// ResultSet results = session.execute("SELECT id, events FROM grade;");
+				// Selecting all rows from the Cassandra table and storing the results in a ResultSet
 				ResultSet results = session.execute("SELECT * FROM grade;");
+				// Loop through all rows to serialize the results
 				for (Row row : results) {
 						int id = row.getInt("id");
 						List<Integer> events = row.getList("events", Integer.class);
+						// Construct the serialized state string with key - value pair from cassandra table
 						serializedState.append(id).append(":").append(events.toString()).append("\n");
 				}
+				// Return the serialized string as the state of the database
 				return serializedState.toString();
 		} catch (Exception e) {
 				e.printStackTrace();
@@ -156,23 +165,33 @@ public class MyDBReplicableAppGP implements Replicable {
 	@Override
 	public boolean restore(String s, String s1) {
 		// TODO:
+		// Truncate the whole table if the state to be restored to is an empty state (no key - value pairs)
 		if ("{}".equals(s1.trim())) {
 			session.execute("TRUNCATE grade;");
 			return true;
 		}
 
 		try {
+				// Clear current table 
 				session.execute("TRUNCATE grade;");
+				// Split the rows of the serialized database
 				String[] rows = s1.split("\n");
 				for (String rowData : rows) {
+						// Split key and value pairs
 						String[] parts = rowData.split(":");
+						// Retrieve the id (key)
 						int id = Integer.parseInt(parts[0]);
+						// Parsing the events list
 						List<Integer> events = parseEventsList(parts[1]);
+						// Query to Insert key-value pair into table
 						String cqlInsert = "INSERT INTO grade (id, events) VALUES (" + id + ", " + events + ");";
+						// Run the query
 						session.execute(cqlInsert);
 				}
+				// Returns true if all row insertion is successful
 				return true;
 		} catch (Exception e) {
+				// Return false if there are any errors
 				e.printStackTrace();
 				return false;
 		}
